@@ -1,0 +1,42 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_URL=http://backend:5000
+    depends_on:
+      - backend
+
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_HOST=db
+      - DB_USER=smartnews
+      - DB_PASSWORD=smartnews123
+      - DB_NAME=smartnews
+      - AI_API=http://ai:8000
+    depends_on:
+      - db
+      - ai
+
+  ai:
+    build: ./ai
+    ports:
+      - "8000:8000"
+
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: smartnews
+      POSTGRES_PASSWORD: smartnews123
+      POSTGRES_DB: smartnews
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
