@@ -1,59 +1,35 @@
+// 📌 Express와 필요한 라이브러리 불러오기
 import express from "express";
 import cors from "cors";
-import pkg from "pg";
-const { Pool } = pkg;
+
+// 📌 기능별 라우트 파일 불러오기
+// 1단계: 뉴스 수집
+// 2단계: 요약 생성
+import collectRouter from "./routes/collect.js";
+import summarizeRouter from "./routes/summarize.js";
 
 const app = express();
 
-// ✅ CORS 허용 (프론트 주소 명시)
+// ✅ CORS 설정
+// 프론트엔드(React)에서 백엔드로 요청할 수 있도록 허용
 app.use(
   cors({
-    origin: ["http://localhost:3000"], // 프론트엔드 주소
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: ["http://localhost:3000"],  // 허용할 프론트 주소
+    methods: ["GET", "POST"],
     credentials: true,
   })
 );
 
+// ✅ JSON 파싱 설정
+// 클라이언트에서 온 JSON 데이터를 자동으로 읽어줌
 app.use(express.json());
 
-// PostgreSQL 연결 설정
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+// ✅ 라우트 등록
+// /collect 경로로 들어오는 요청은 collectRouter에서 처리
+app.use("/collect", collectRouter);
+app.use("/summarize", summarizeRouter);
+
+// ✅ 서버 실행 (5000번 포트 리스닝)
+app.listen(5000, () => {
+  console.log("🚀 Backend server running on port 5000");
 });
-
-// 뉴스 수집 엔드포인트
-app.post("/collect", async (req, res) => {
-  const { keyword } = req.body;
-  if (!keyword) return res.status(400).json({ error: "keyword required" });
-
-  try {
-    const response = await fetch(
-      `https://newsapi.org/v2/everything?q=${encodeURIComponent(
-        keyword
-      )}&language=ko&apiKey=${process.env.NEWS_API_KEY}`
-    );
-    const data = await response.json();
-
-    if (!data.articles) {
-      return res.status(500).json({ error: "API returned no data" });
-    }
-
-    for (const a of data.articles.slice(0, 5)) {
-      await pool.query(
-        `INSERT INTO articles (keyword, title, content, source, published_at)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [keyword, a.title, a.content, a.source?.name || "", a.publishedAt]
-      );
-    }
-
-    res.json({ status: "ok", inserted: data.articles.length });
-  } catch (err) {
-    console.error("❌ Fetch or DB Error:", err);
-    res.status(500).json({ error: "failed to collect news" });
-  }
-});
-
-app.listen(5000, () => console.log("✅ Backend running on port 5000"));
