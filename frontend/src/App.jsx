@@ -2,17 +2,13 @@ import { useState } from "react";
 
 function App() {
   const [keyword, setKeyword] = useState("");
-  const [results, setResults] = useState([]); // 요약된 기사 목록
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [result, setResult] = useState("");
+  const [summaryList, setSummaryList] = useState([]);
 
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+  // 🔹 뉴스 수집 실행
   const handleCollect = async () => {
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-    setLoading(true);
-    setError("");
-    setResults([]);
-
     try {
       const res = await fetch(`${API_URL}/collect`, {
         method: "POST",
@@ -23,21 +19,34 @@ function App() {
       if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
 
       const data = await res.json();
-
-      // 요약된 기사 목록 저장
-      setResults(data.results);
-
+      setResult(JSON.stringify(data, null, 2));
     } catch (err) {
       console.error("❌ 뉴스 수집 오류:", err);
-      setError(`❌ 오류 발생: ${err.message}`);
-    } finally {
-      setLoading(false);
+      setResult(`❌ 오류 발생: ${err.message}`);
     }
+  };
+
+  // 🔹 DB에 저장된 뉴스 요약 + 감정 결과 가져오기
+  const loadSummary = async () => {
+    try {
+      const res = await fetch(`${API_URL}/news/summary`);
+      const data = await res.json();
+      setSummaryList(data);
+    } catch (err) {
+      console.error("❌ 요약 조회 오류:", err);
+    }
+  };
+
+  // 🔹 감정 배지 스타일
+  const sentimentStyle = (sentiment) => {
+    if (sentiment === "긍정") return { color: "#2ecc71", fontWeight: "bold" };
+    if (sentiment === "부정") return { color: "#e74c3c", fontWeight: "bold" };
+    return { color: "#f1c40f", fontWeight: "bold" }; // 중립
   };
 
   return (
     <div style={{ padding: "40px", textAlign: "center" }}>
-      <h2>📰 SmartNews - 뉴스 자동 요약</h2>
+      <h2>📰 SmartNews - 뉴스 수집 & 감정 분석</h2>
 
       {/* 키워드 입력 */}
       <input
@@ -47,44 +56,49 @@ function App() {
         onChange={(e) => setKeyword(e.target.value)}
         style={{ padding: "8px", marginRight: "8px" }}
       />
-      <button onClick={handleCollect}>뉴스 수집 + 자동 요약</button>
 
-      {/* 로딩 중 */}
-      {loading && <p style={{ marginTop: "20px" }}>⏳ 요약 생성 중...</p>}
+      <button onClick={handleCollect} style={{ marginRight: "10px" }}>
+        뉴스 수집 실행
+      </button>
 
-      {/* 오류 메시지 */}
-      {error && (
-        <p style={{ marginTop: "20px", color: "red" }}>{error}</p>
-      )}
+      <button onClick={loadSummary}>
+        요약 + 감정 결과 불러오기
+      </button>
 
-      {/* 결과 렌더링 */}
-      <div
-        style={{
-          marginTop: "30px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "20px",
-          maxWidth: "700px",
-          margin: "30px auto",
-        }}
-      >
-        {results.map((item) => (
+      {/* 수집 결과 출력 */}
+      <pre style={{ marginTop: "20px", textAlign: "left", width: "80%", margin: "auto" }}>
+        {result}
+      </pre>
+
+      {/* 요약 + 감정 결과 출력 */}
+      <div style={{ marginTop: "40px", width: "80%", margin: "40px auto" }}>
+        <h3>📋 뉴스 요약 + 감정 분석 결과</h3>
+        {summaryList.length === 0 && <p>아직 데이터가 없습니다.</p>}
+
+        {summaryList.map((item) => (
           <div
-            key={item.article_id}
+            key={item.id}
             style={{
+              border: "1px solid #ddd",
               padding: "15px",
-              border: "1px solid #ccc",
-              borderRadius: "8px",
+              borderRadius: "10px",
+              marginBottom: "20px",
               textAlign: "left",
             }}
           >
-            <h3 style={{ marginBottom: "10px" }}>{item.title}</h3>
+            <h4>{item.title}</h4>
 
-            <h4>📌 간단 요약</h4>
             <p>{item.summary_short}</p>
 
-            <h4 style={{ marginTop: "10px" }}>📝 심화 요약</h4>
-            <p>{item.summary_long}</p>
+            <p style={sentimentStyle(item.sentiment)}>
+              {item.sentiment === "긍정" && "😊 긍정"}
+              {item.sentiment === "부정" && "😡 부정"}
+              {item.sentiment === "중립" && "😐 중립"}
+            </p>
+
+            <small>
+              {new Date(item.published_at).toLocaleString()}
+            </small>
           </div>
         ))}
       </div>
