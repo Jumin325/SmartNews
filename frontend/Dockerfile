@@ -5,6 +5,9 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 
-# Vite 개발 서버 실행
-CMD ["npm", "run", "dev"]
+# Vite dev 서버가 외부에서 접속 가능하도록
+ENV HOST=0.0.0.0
 EXPOSE 3000
+
+# Vite dev 서버 실행
+CMD ["npm", "run", "dev"]
