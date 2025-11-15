@@ -1,91 +1,248 @@
-/* 전체 레이아웃 */
+/* ---- 기본 레이아웃 ---- */
+body {
+  margin: 0;
+  padding: 0;
+  background: #fafafa;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
 .container {
-  min-height: 100vh;
-  background: #f5f5f5;
-  padding: 40px 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 40px;
+
+  /* 오른쪽 패널 공간 확보 */
+  padding-right: 400px;
+}
+
+/* ---- SmartNews + 검색창 중앙 ---- */
+.header {
+  position: absolute;
+  top: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.logo {
+  font-size: 32px;
+  font-weight: bold;
+}
+
+.search-bar {
+  display: flex;
+  gap: 10px;
+}
+
+.search-bar input {
+  padding: 10px;
+  border: 1px solid #bfc3d0;
+  border-radius: 6px;
+  width: 240px;
+}
+
+.search-btn {
+  padding: 10px 18px;
+  background: white;
+  border: 1px solid #2563eb;
+  color: #2563eb;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.search-btn:hover {
+  background: #2563eb;
+  color: white;
+}
+
+/* 분석 결과 중앙 정렬 고정 */
+.analysis-wrapper {
+  position: absolute;
+  top: 20%;             /* 검색창 바로 아래 — 지금보다 조금 위로 조정 가능 */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 900px;
+
   display: flex;
   flex-direction: column;
   align-items: center;
+
+  /* 오른쪽 패널 때문에 밀리는 것을 방지 */
+  padding-right: 0;
 }
 
-/* 검색 박스 */
-.search-box {
+.section {
   width: 100%;
-  max-width: 600px;
+  max-width: 900px;
+  text-align: left;
+}
+
+/* SECTION TITLE */
+.section h2 {
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+
+/* CARD LIST */
+.card-list {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* TAG */
+.tag {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.tag.positive {
+  background: #d1fae5;
+  color: #065f46;
+}
+.tag.neutral {
+  background: #e5e7eb;
+  color: #374151;
+}
+.tag.negative {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ---- 오른쪽 고정 패널 ---- */
+.fixed-right-panel {
+  position: fixed;
+  right: 30px;
+  top: 120px;
+  width: 350px;
+  max-height: 80vh;
+
   background: white;
-  padding: 20px;
   border-radius: 12px;
+
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  border: 1px solid #e5e7eb;
+
+  transition: height 0.35s ease, padding 0.3s;
+  overflow: hidden;
+}
+
+.fixed-right-panel.open {
+  padding: 18px;
+  height: 80vh;
+}
+
+.fixed-right-panel.closed {
+  height: 60px;
+  padding: 10px 18px;
+}
+
+/* PANEL HEADER */
+.panel-header {
   display: flex;
-  gap: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  justify-content: space-between;
+  align-items: center;
 }
 
-.search-box input {
-  flex: 1;
-  padding: 12px 14px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 16px;
-}
-
-.search-box button {
+.toggle-btn {
+  cursor: pointer;
+  padding: 4px 6px;
+  border: none;
   background: #2563eb;
   color: white;
-  padding: 12px 18px;
-  border-radius: 8px;
-  border: none;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+/* PANEL CONTENT */
+.panel-content {
+  overflow-y: auto;
+  margin-top: 12px;
+  padding-right: 5px;
+}
+
+.history-item-side {
+  padding: 10px 0;
+  border-bottom: 1px solid #e5e7eb;
   cursor: pointer;
-  transition: 0.2s;
-  font-size: 15px;
 }
 
-.search-box button:hover {
-  background: #1e50c5;
+.history-item-side:hover {
+  background: #eef3ff;
 }
 
-/* 결과 카드 영역 */
-.results {
-  width: 100%;
-  max-width: 700px;
-  margin-top: 30px;
+.detail-card {
+  margin-top: 15px;
+  line-height: 1.5;
 }
 
-.empty {
-  text-align: center;
-  color: #777;
+.summary-long {
   margin-top: 10px;
   font-size: 15px;
 }
 
-/* 개별 카드 */
-.card {
+/* ---- 왼쪽 전체 감정 요약 패널 ---- */
+.fixed-bottom-left {
+  position: fixed;
+  left: 30px;
+  bottom: 30px;
+
+  width: 300px;
   background: white;
-  padding: 22px;
   border-radius: 12px;
-  margin-bottom: 18px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.07);
+
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
   border: 1px solid #e5e7eb;
+
+  transition: height 0.35s ease, padding 0.3s;
+  overflow: hidden;
 }
 
-.card h2 {
-  font-size: 20px;
-  margin-bottom: 10px;
+.fixed-bottom-left.open {
+  padding: 15px;
+  height: 320px;
 }
 
-.card p {
-  margin-bottom: 14px;
-  color: #444;
-  line-height: 1.5;
+.fixed-bottom-left.closed {
+  height: 55px;
+  padding: 12px 15px;
 }
 
-.detail-btn {
-  background: none;
-  color: #2563eb;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
+.left-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
 }
 
-.detail-btn:hover {
-  text-decoration: underline;
+.left-content {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+/* ---- FOOTER (하단 고정 + 구분선 추가) ---- */
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+
+  width: 100%;
+  text-align: center;
+  padding: 10px 0;
+
+  background: #fafafa;
+  color: #6b7280;
+  font-size: 13px;
+
+  border-top: 1px solid #e5e7eb;
 }

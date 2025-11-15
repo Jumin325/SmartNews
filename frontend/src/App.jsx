@@ -1,115 +1,222 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
+import SentimentDonut from "./components/SentimentDonut";
 
 function App() {
   const [keyword, setKeyword] = useState("");
-  const [result, setResult] = useState("");
-  const [summaryList, setSummaryList] = useState([]);
+  const [analysis, setAnalysis] = useState([]);
+  const [historyList, setHistoryList] = useState([]);
+  const [selectedHistory, setSelectedHistory] = useState(null);
 
-  // 🔥 추가: result 출력 토글
-  const [showResult, setShowResult] = useState(false);
+  const [showLeft, setShowLeft] = useState(true);
+  const [showRight, setShowRight] = useState(true);
 
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const API_URL = import.meta.env.VITE_API_URL;
 
-  // 🔹 뉴스 수집 실행
-  const handleCollect = async () => {
-    try {
-      const res = await fetch(`${API_URL}/collect`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keyword }),
-      });
-
-      if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
-
-      const data = await res.json();
-      setResult(JSON.stringify(data, null, 2));
-      setShowResult(true);   // ←🔥 자동으로 결과창 보여주기
-
-    } catch (err) {
-      console.error("❌ 뉴스 수집 오류:", err);
-      setResult(`❌ 오류 발생: ${err.message}`);
-      setShowResult(true);
-    }
+  const extractCompany = (title) => {
+    if (!title) return "";
+    return title.split(",")[0].trim();
   };
 
-  // 🔹 DB → 요약 + 감정 결과 가져오기
-  const loadSummary = async () => {
-    try {
-      const res = await fetch(`${API_URL}/news/summary`);
-      const data = await res.json();
-      setSummaryList(data);
-    } catch (err) {
-      console.error("❌ 요약 조회 오류:", err);
-    }
+  const handleSearch = async () => {
+    if (!keyword.trim()) return;
+
+    const res = await fetch(`${API_URL}/collect`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keyword }),
+    });
+
+    const data = await res.json();
+    setAnalysis(data);
+    fetchHistory();
   };
+
+  const fetchHistory = async () => {
+    const res = await fetch(`${API_URL}/news/summary`);
+    const data = await res.json();
+    setHistoryList(data);
+  };
+
+  const loadHistoryDetail = async (id) => {
+    const all = await fetch(`${API_URL}/news/summary`).then((r) => r.json());
+    const item = all.find((x) => x.id === id);
+    setSelectedHistory(item);
+  };
+
+  const getSentimentStats = (list) => {
+    if (!Array.isArray(list) || list.length === 0)
+      return { positive: 0, neutral: 0, negative: 0 };
+
+    let pos = 0,
+      neu = 0,
+      neg = 0;
+
+    list.forEach((a) => {
+      if (a.sentiment === "긍정") pos++;
+      else if (a.sentiment === "중립") neu++;
+      else if (a.sentiment === "부정") neg++;
+    });
+
+    const total = list.length;
+
+    return {
+      positive: Math.round((pos / total) * 100),
+      neutral: Math.round((neu / total) * 100),
+      negative: Math.round((neg / total) * 100),
+    };
+  };
+
+  const sentiment = getSentimentStats(analysis);
+  const totalSentiment = getSentimentStats(historyList);
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
 
   return (
     <div className="container">
-      <h2 className="title">📰 SmartNews - 뉴스 수집 & 감정 분석</h2>
+      {/* HEADER */}
+      <header className="header">
+        <h1 className="logo">SmartNews</h1>
 
-      {/* 🔍 검색 카드 */}
-      <div className="search-box">
-        <input
-          type="text"
-          placeholder="키워드를 입력하세요 (예: AI, 클라우드...)"
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-        />
+        <div className="search-bar">
+          <input
+            type="text"
+            placeholder="키워드를 입력하세요"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+          />
+          <button className="search-btn" onClick={handleSearch}>
+            검색
+          </button>
+        </div>
+      </header>
 
-        <button onClick={handleCollect} className="btn primary">
-          뉴스 수집
-        </button>
+      {/* ANALYSIS - 중앙 정렬 */}
+      {analysis.length > 0 && (
+        <div className="analysis-wrapper">
+          <section className="section">
+            <h2>이번 분석 결과</h2>
 
-        <button onClick={loadSummary} className="btn secondary">
-          요약 불러오기
-        </button>
-      </div>
+            <SentimentDonut
+              positive={sentiment.positive}
+              neutral={sentiment.neutral}
+              negative={sentiment.negative}
+              size={200}
+            />
 
-      {/* 🔽 수집 결과 토글 버튼 */}
-      <button className="btn toggle" onClick={() => setShowResult(!showResult)}>
-        {showResult ? "수집 결과 숨기기" : "수집 결과 보기"}
-      </button>
-
-      {/* 📂 수집 결과 출력 (토글 적용) */}
-      {showResult && (
-        <pre className="result-box">
-          {(() => {
-            try {
-              return typeof result === "string"
-                ? result
-                : JSON.stringify(result, null, 2);
-            } catch {
-              return "⚠ 결과 렌더링 오류 발생";
-            }
-          })()}
-        </pre>
+            <div className="card-list">
+              {analysis.map((a) => (
+                <div key={a.id} className="card">
+                  <h4>{a.title}</h4>
+                  <p>{a.summary_short}</p>
+                  <span
+                    className={`tag ${
+                      a.sentiment === "긍정"
+                        ? "positive"
+                        : a.sentiment === "부정"
+                        ? "negative"
+                        : "neutral"
+                    }`}
+                  >
+                    {a.sentiment}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
       )}
 
-      {/* 📋 요약 + 감정 카드 출력 */}
-      <div className="summary-section">
-        <h3>📋 뉴스 요약 + 감정 분석 결과</h3>
+      {/* RIGHT PANEL */}
+      <div className={`fixed-right-panel ${showRight ? "open" : "closed"}`}>
+        <div className="panel-header">
+          <h3>과거 요약 기록</h3>
 
-        {summaryList.length === 0 && <p>데이터가 없습니다.</p>}
+          <button
+            className="toggle-btn"
+            onClick={() => setShowRight(!showRight)}
+          >
+            {showRight ? <span>_</span> : <span>▢</span>}
+          </button>
+        </div>
 
-        {summaryList.map((item) => (
-          <div key={item.id} className="card">
-            <h4>{item.title}</h4>
+        <div className="panel-content">
+          {showRight && (
+            <>
+              <div className="history-list-side">
+                {historyList.map((h) => (
+                  <div
+                    key={h.id}
+                    className="history-item-side"
+                    onClick={() => loadHistoryDetail(h.id)}
+                  >
+                    <strong>
+                      {h.published_at?.slice(0, 10)} ({h.keyword})
+                    </strong>
+                    <span>{extractCompany(h.title)}</span>
+                  </div>
+                ))}
+              </div>
 
-            <p className="summary">{item.summary_short}</p>
+              <div className="history-detail-side">
+                {selectedHistory && (
+                  <div className="detail-card">
+                    <h4>
+                      {selectedHistory.published_at?.slice(0, 10)} (
+                      {selectedHistory.keyword}){" "}
+                      {extractCompany(selectedHistory.title)}
+                    </h4>
 
-            <p className={`sentiment ${item.sentiment}`}>
-              {item.sentiment === "긍정" && "😊 긍정"}
-              {item.sentiment === "부정" && "😡 부정"}
-              {item.sentiment === "중립" && "😐 중립"}
-            </p>
+                    <p
+                      className={`tag ${
+                        selectedHistory.sentiment === "긍정"
+                          ? "positive"
+                          : selectedHistory.sentiment === "부정"
+                          ? "negative"
+                          : "neutral"
+                      }`}
+                    >
+                      감정: {selectedHistory.sentiment}
+                    </p>
 
-            <small className="date">
-              {new Date(item.published_at).toLocaleString()}
-            </small>
-          </div>
-        ))}
+                    <p className="summary-long">
+                      {selectedHistory.summary_long}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
+
+      {/* LEFT DONUT PANEL */}
+      <div className={`fixed-bottom-left ${showLeft ? "open" : "closed"}`}>
+        <div className="left-header">
+          <span>전체 감정 요약</span>
+          <button className="toggle-btn" onClick={() => setShowLeft(!showLeft)}>
+            {showLeft ? <span>_</span> : <span>▢</span>}
+          </button>
+        </div>
+
+        {showLeft && (
+          <div className="left-content">
+            <SentimentDonut
+              positive={totalSentiment.positive}
+              neutral={totalSentiment.neutral}
+              negative={totalSentiment.negative}
+              size={200}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* FOOTER */}
+      <footer className="footer">
+        © 2025 SmartNews. All rights reserved.
+      </footer>
     </div>
   );
 }

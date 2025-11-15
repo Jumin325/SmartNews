@@ -8,6 +8,7 @@ import cors from "cors";
 import collectRouter from "./routes/collect.js";
 import summarizeRouter from "./routes/summarize.js";
 import newsRouter from "./routes/news.js";
+import historyRouter from "./routes/history.js";
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use(express.json());
 app.use("/collect", collectRouter);
 app.use("/summarize", summarizeRouter);
 app.use("/news", newsRouter);
+app.use("/history", historyRouter);
 
 // ✅ 서버 실행 (5000번 포트 리스닝)
 app.listen(5000, () => {
